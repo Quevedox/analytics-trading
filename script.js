@@ -11,15 +11,274 @@ function save(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(trades)); }catch(e){}
 }
 
+/* ================== CUENTA Y PLANES (demo, 100% local) ================== */
+const USER_KEY = 'tj_user_v1';
+const PLAN_KEY = 'tj_plan_v1';
+const PLAN_ORDER = ['lite','basico','pro'];
+const LITE_TRADE_LIMIT = 15;
+
+const PLAN_INFO = {
+  lite:   {label:'Lite',   price:'Gratis',     priceSub:''},
+  basico: {label:'Básico', price:'$9.990',     priceSub:'/mes'},
+  pro:    {label:'Pro',    price:'$19.990',    priceSub:'/mes'},
+};
+
+function getUser(){
+  try{ const raw = localStorage.getItem(USER_KEY); return raw?JSON.parse(raw):null; }catch(e){ return null; }
+}
+function setUser(u){ try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(e){} }
+function getPlan(){
+  try{ return localStorage.getItem(PLAN_KEY) || 'lite'; }catch(e){ return 'lite'; }
+}
+function setPlan(p){ try{ localStorage.setItem(PLAN_KEY, p); }catch(e){} }
+function hasPlan(required){ return PLAN_ORDER.indexOf(getPlan()) >= PLAN_ORDER.indexOf(required); }
+
+function doLogin(name, email, method){
+  setUser({ name: name || 'Trader', email: email || '', method });
+  document.getElementById('login-overlay').style.display = 'none';
+  refreshAccountBar();
+  renderTrades();
+}
+
+document.getElementById('login-google').addEventListener('click', ()=>{
+  const name = document.getElementById('login-name').value.trim() || 'Usuario de Google';
+  doLogin(name, name.toLowerCase().replace(/\s+/g,'.')+'@gmail.com', 'google');
+});
+document.getElementById('login-apple').addEventListener('click', ()=>{
+  const name = document.getElementById('login-name').value.trim() || 'Usuario de Apple';
+  doLogin(name, name.toLowerCase().replace(/\s+/g,'.')+'@icloud.com', 'apple');
+});
+document.getElementById('login-email-btn').addEventListener('click', ()=>{
+  const name = document.getElementById('login-name').value.trim() || 'Trader';
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-password').value;
+  if(!email || !pass){ alert('Completá email y contraseña.'); return; }
+  doLogin(name, email, 'email');
+});
+
+document.getElementById('link-logout').addEventListener('click', ()=>{
+  try{ localStorage.removeItem(USER_KEY); }catch(e){}
+  location.reload();
+});
+document.getElementById('link-change-plan').addEventListener('click', ()=> goToTab('planes'));
+
+function refreshAccountBar(){
+  const u = getUser();
+  document.getElementById('account-name').textContent = u ? u.name : '-';
+  const plan = getPlan();
+  const badge = document.getElementById('account-plan-badge');
+  badge.textContent = PLAN_INFO[plan].label;
+  badge.className = 'plan-badge ' + plan;
+}
+
+function goToTab(tabId){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tabId));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.id===tabId));
+  if(tabId==='analisis') renderAnalysis();
+  if(tabId==='planes') renderPlans();
+  if(tabId==='varianza') renderVariance();
+  applyGating();
+}
+
+/* -------- planes -------- */
+const PLAN_FEATURES = {
+  lite:   ['Diario (hasta '+LITE_TRADE_LIMIT+' operaciones)','Estadísticas básicas (win rate, P/L neto)'],
+  basico: ['Operaciones ilimitadas','Análisis por día de la semana','Estadísticas de TP / SL'],
+  pro:    ['Importar reportes de MetaTrader','Análisis por sesión (Asia / Londres / NY)','Varianza y simulación Monte Carlo','Todo lo de Básico'],
+};
+
+function renderPlans(){
+  const grid = document.getElementById('plans-grid');
+  const current = getPlan();
+  grid.innerHTML = PLAN_ORDER.map(p=>{
+    const info = PLAN_INFO[p];
+    const isCurrent = p===current;
+    let featuresHtml = '';
+    PLAN_ORDER.forEach(tier=>{
+      const locked = PLAN_ORDER.indexOf(tier) > PLAN_ORDER.indexOf(p);
+      PLAN_FEATURES[tier].forEach(f=>{
+        featuresHtml += `<li class="${locked?'locked':''}">${f}</li>`;
+      });
+    });
+    return `<div class="plan-card ${isCurrent?'current':''} ${p==='pro'?'featured':''}">
+      <h3>${info.label}</h3>
+      <div class="price">${info.price}<span>${info.priceSub}</span></div>
+      <ul>${featuresHtml}</ul>
+      <button class="btn ${isCurrent?'ghost':''}" ${isCurrent?'disabled':''} data-plan="${p}" onclick="requestPlanChange('${p}')">${isCurrent?'Plan actual':'Elegir este plan'}</button>
+    </div>`;
+  }).join('');
+}
+
+function requestPlanChange(targetPlan){
+  const current = getPlan();
+  if(targetPlan===current) return;
+  const info = PLAN_INFO[targetPlan];
+  const modal = document.getElementById('plan-modal');
+  const isUpgrade = PLAN_ORDER.indexOf(targetPlan) > PLAN_ORDER.indexOf(current);
+  document.getElementById('plan-modal-icon').textContent = isUpgrade ? '💳' : '⚠️';
+  document.getElementById('plan-modal-title').textContent = isUpgrade ? `Pasar a Plan ${info.label}` : `Volver a Plan ${info.label}`;
+  document.getElementById('plan-modal-text').textContent = isUpgrade
+    ? `Vas a cambiar al plan ${info.label} (${info.price}${info.priceSub}). Esto es una simulación: no se realiza ningún cobro real.`
+    : `Vas a volver al plan ${info.label}. Podrías perder acceso a funciones que ya desbloqueaste.`;
+  modal.dataset.targetPlan = targetPlan;
+  modal.classList.add('show');
+}
+document.getElementById('plan-modal-cancel').addEventListener('click', ()=>{
+  document.getElementById('plan-modal').classList.remove('show');
+});
+document.getElementById('plan-modal-confirm').addEventListener('click', ()=>{
+  const modal = document.getElementById('plan-modal');
+  const targetPlan = modal.dataset.targetPlan;
+  setPlan(targetPlan);
+  modal.classList.remove('show');
+  refreshAccountBar();
+  renderPlans();
+  applyGating();
+  renderAnalysis();
+});
+document.querySelectorAll('.unlock-btn, #unlock-importar-btn').forEach(b=>{
+  b.addEventListener('click', ()=> goToTab('planes'));
+});
+
+/* -------- gating: oculta/bloquea funciones según el plan -------- */
+function applyGating(){
+  const okBasico = hasPlan('basico');
+  const okPro = hasPlan('pro');
+
+  document.getElementById('day-analysis-locked').style.display = okBasico ? 'none' : 'block';
+  document.getElementById('day-analysis-card').style.display = okBasico ? 'block' : 'none';
+
+  document.getElementById('session-locked').style.display = okPro ? 'none' : 'block';
+  document.getElementById('session-card').style.display = okPro ? 'block' : 'none';
+
+  document.getElementById('importar-locked').style.display = okPro ? 'none' : 'block';
+  document.getElementById('importar-content').style.display = okPro ? 'block' : 'none';
+  document.getElementById('varianza-locked').style.display = okPro ? 'none' : 'block';
+  document.getElementById('varianza-content').style.display = okPro ? 'block' : 'none';
+}
+
+/* ================== VARIANZA ================== */
+function pctl(sorted,p){
+  const i=(sorted.length-1)*p, lo=Math.floor(i), hi=Math.ceil(i);
+  return sorted[lo]+(sorted[hi]-sorted[lo])*(i-lo);
+}
+function money(x){ return (x>=0?'+':'-')+Math.abs(x).toFixed(2); }
+
+function equitySvg(pnls){
+  const W=600,H=180,pad=8;
+  let eq=0; const pts=[0]; pnls.forEach(x=>{eq+=x; pts.push(eq);});
+  const mn=Math.min(...pts), mx=Math.max(...pts), range=(mx-mn)||1;
+  const X=i=>pad+(i/(pts.length-1))*(W-2*pad), Y=v=>H-pad-((v-mn)/range)*(H-2*pad);
+  const d=pts.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:180px;display:block;"><line x1="${pad}" x2="${W-pad}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--border)" stroke-dasharray="4 4"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+  <div class="hint" style="display:flex;justify-content:space-between;"><span>Mín ${money(mn)}</span><span>Final ${money(eq)}</span><span>Máx ${money(mx)}</span></div>`;
+}
+
+function runMonteCarlo(pnls,sims){
+  const n=pnls.length, fin=[], dd=[], st=[];
+  for(let s=0;s<sims;s++){
+    let eq=0,peak=0,mdd=0,cur=0,mxl=0;
+    for(let i=0;i<n;i++){
+      const x=pnls[Math.floor(Math.random()*n)];
+      eq+=x; if(eq>peak) peak=eq; if(peak-eq>mdd) mdd=peak-eq;
+      if(x<0){cur++; if(cur>mxl) mxl=cur;} else cur=0;
+    }
+    fin.push(eq); dd.push(mdd); st.push(mxl);
+  }
+  const srt=a=>a.sort((x,y)=>x-y);
+  srt(fin); srt(dd); srt(st);
+  return {fin,dd,st,neg:fin.filter(v=>v<0).length/sims};
+}
+
+function renderMonteCarlo(pnls){
+  const SIMS=2000, r=runMonteCarlo(pnls,SIMS);
+  document.getElementById('var-mc').innerHTML=`
+    <p class="hint" style="margin-top:-4px;">Se repiten tus ${pnls.length} operaciones ${SIMS} veces sacándolas al azar de tu historial. Muestra cuánto puede variar el resultado solo por el orden de la suerte, con la misma estrategia.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Métrica</th><th>Mejor caso (5%)</th><th>Típico (mediana)</th><th>Peor caso (5%)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Resultado final</strong></td><td class="pos">${money(pctl(r.fin,.95))}</td><td>${money(pctl(r.fin,.5))}</td><td class="${pctl(r.fin,.05)>=0?'pos':'neg'}">${money(pctl(r.fin,.05))}</td></tr>
+        <tr><td><strong>Drawdown máximo</strong></td><td>-${pctl(r.dd,.05).toFixed(2)}</td><td>-${pctl(r.dd,.5).toFixed(2)}</td><td class="neg">-${pctl(r.dd,.95).toFixed(2)}</td></tr>
+        <tr><td><strong>Racha de pérdidas</strong></td><td>${pctl(r.st,.05).toFixed(0)}</td><td>${pctl(r.st,.5).toFixed(0)}</td><td class="neg">${pctl(r.st,.95).toFixed(0)}</td></tr>
+      </tbody></table></div>
+    <p class="hint" style="margin-top:10px;">Probabilidad de terminar en negativo con este mismo número de operaciones: <strong>${(r.neg*100).toFixed(1)}%</strong>. Asume que los trades son independientes entre sí.</p>`;
+}
+
+function renderVariance(){
+  const stats=document.getElementById('var-stats');
+  const ordered=[...trades].map((t,i)=>({t,i})).sort((a,b)=>{
+    const d=new Date(a.t.date)-new Date(b.t.date); if(d) return d;
+    const h=(a.t.hour??0)-(b.t.hour??0); return h||a.i-b.i;
+  }).map(o=>o.t);
+  const pnls=ordered.map(t=>t.profit), n=pnls.length;
+  if(n<10){
+    stats.innerHTML='';
+    ['var-equity','var-edge','var-days','var-mc'].forEach(id=>document.getElementById(id).innerHTML='');
+    document.getElementById('var-edge').innerHTML='Necesitás al menos 10 operaciones cargadas para calcular la varianza (importá tu reporte de MetaTrader en la pestaña Importar MT).';
+    return;
+  }
+  const sum=pnls.reduce((a,b)=>a+b,0), mean=sum/n;
+  const variance=pnls.reduce((a,x)=>a+(x-mean)**2,0)/(n-1), sd=Math.sqrt(variance);
+  const wins=pnls.filter(x=>x>=0), losses=pnls.filter(x=>x<0);
+  const grossW=wins.reduce((a,b)=>a+b,0), grossL=Math.abs(losses.reduce((a,b)=>a+b,0));
+  const avgW=wins.length?grossW/wins.length:0, avgL=losses.length?grossL/losses.length:0;
+  const payoff=avgL?avgW/avgL:0, pf=grossL?grossW/grossL:0, be=payoff?100/(1+payoff):0;
+  let mw=0,ml=0,cw=0,cl=0,eq=0,peak=0,mdd=0;
+  pnls.forEach(x=>{
+    if(x>=0){cw++;cl=0;} else {cl++;cw=0;}
+    mw=Math.max(mw,cw); ml=Math.max(ml,cl);
+    eq+=x; peak=Math.max(peak,eq); mdd=Math.max(mdd,peak-eq);
+  });
+  const tstat=sd?mean/(sd/Math.sqrt(n)):0;
+  const card=(v,l,c='')=>`<div class="stat"><div class="n ${c}">${v}</div><div class="l">${l}</div></div>`;
+  stats.innerHTML=
+    card(money(mean),'Expectativa por trade',mean>=0?'pos':'neg')+
+    card(variance.toFixed(0),'Varianza (P/L)')+
+    card(sd.toFixed(2),'Desvío estándar')+
+    card(pf.toFixed(2),'Profit factor',pf>=1?'pos':'neg')+
+    card(payoff.toFixed(2),'Payoff (ganancia/pérdida prom.)')+
+    card(be.toFixed(0)+'%','Win rate de equilibrio')+
+    card(ml,'Racha máx. de pérdidas','neg')+
+    card(mw,'Racha máx. de ganancias','pos')+
+    card('-'+mdd.toFixed(2),'Drawdown máximo','neg');
+
+  document.getElementById('var-equity').innerHTML=equitySvg(pnls);
+
+  const need=mean>0?Math.ceil((2*sd/mean)**2):null;
+  let verdict;
+  if(tstat>=2) verdict='Tu promedio es lo bastante alto frente a la variabilidad como para que <strong>sea poco probable que sea solo suerte</strong> (≈95% de confianza).';
+  else if(tstat>0) verdict='Tu promedio es positivo, pero con esta cantidad de operaciones <strong>todavía no se puede descartar que sea suerte</strong>.';
+  else verdict='Tu promedio por trade es negativo o nulo: <strong>hoy los datos no muestran ventaja</strong>.';
+  document.getElementById('var-edge').innerHTML=`Estadístico t: <strong>${tstat.toFixed(2)}</strong> (con ${n} operaciones). ${verdict}`+
+    (need?`<br>Para llegar a t≈2 con tu media y desvío actuales harían falta unas <strong>${need}</strong> operaciones${need>n?` (te faltan ~${need-n})`:''}.`:'')+
+    `<br><span class="hint">Aproximación estadística que asume operaciones independientes; sirve como referencia, no como garantía.</span>`;
+
+  const byDate={}; ordered.forEach(t=>byDate[t.date]=(byDate[t.date]||0)+t.profit);
+  const dv=Object.values(byDate), dn=dv.length, dm=dv.reduce((a,b)=>a+b,0)/dn;
+  const dsd=dn>1?Math.sqrt(dv.reduce((a,x)=>a+(x-dm)**2,0)/(dn-1)):0;
+  const best=Math.max(...dv), worst=Math.min(...dv), posDays=dv.filter(x=>x>0).length;
+  document.getElementById('var-days').innerHTML=
+    `${dn} días operados · promedio diario <strong>${money(dm)}</strong> · desvío diario <strong>${dsd.toFixed(2)}</strong><br>`+
+    `Mejor día <span class="pos">${money(best)}</span> · peor día <span class="neg">${money(worst)}</span> · días positivos <strong>${(posDays/dn*100).toFixed(0)}%</strong>`+
+    (sum>0?`<br>Tu mejor día representa el <strong>${(best/sum*100).toFixed(0)}%</strong> de tu ganancia total. Muchos fondeos limitan ese porcentaje (regla de consistencia): revisá la de tu cuenta.`:'');
+
+  renderMonteCarlo(pnls);
+}
+document.getElementById('var-resim').addEventListener('click',()=>renderVariance());
+
+/* ================== INICIO ================== */
+const existingUser = getUser();
+if(existingUser){
+  document.getElementById('login-overlay').style.display = 'none';
+} else {
+  document.getElementById('login-overlay').style.display = 'flex';
+}
+refreshAccountBar();
+applyGating();
+
 // tabs
 document.querySelectorAll('nav button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(btn.dataset.tab).classList.add('active');
-    if(btn.dataset.tab==='analisis') renderAnalysis();
-  });
+  btn.addEventListener('click', ()=> goToTab(btn.dataset.tab));
 });
 
 // win/loss toggle
@@ -28,6 +287,11 @@ document.querySelectorAll('nav button').forEach(btn=>{
 document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
 
 document.getElementById('add-trade').addEventListener('click', ()=>{
+  if(!hasPlan('basico') && trades.length>=LITE_TRADE_LIMIT){
+    document.getElementById('limit-banner').style.display = 'block';
+    document.getElementById('limit-banner').scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
   const date = document.getElementById('f-date').value;
   if(!date){ alert('Poné una fecha.'); return; }
   const symbol = document.getElementById('f-symbol').value.trim() || '-';
@@ -35,14 +299,17 @@ document.getElementById('add-trade').addEventListener('click', ()=>{
   const grossProfit = parseFloat(document.getElementById('f-profit').value) || 0;
   const commission = Math.abs(parseFloat(document.getElementById('f-commission').value) || 0);
   const profit = grossProfit - commission; // P/L neto = bruto - comisión
+  const timeVal = document.getElementById('f-time').value;
+  const hour = timeVal ? parseInt(timeVal.split(':')[0],10) : null;
   const notes = document.getElementById('f-notes').value.trim();
   const closeReason = document.getElementById('f-close').value;
-  trades.push({date, symbol, lots, profit, commission, result: profit>=0?'win':'loss', notes, closeReason});
+  trades.push({date, symbol, lots, profit, commission, hour, result: profit>=0?'win':'loss', notes, closeReason});
   save();
   document.getElementById('f-symbol').value='';
   document.getElementById('f-lots').value='';
   document.getElementById('f-profit').value='';
   document.getElementById('f-commission').value='';
+  document.getElementById('f-time').value='';
   document.getElementById('f-notes').value='';
   document.getElementById('f-close').value='na';
   renderTrades();
@@ -74,6 +341,9 @@ function dayName(dateStr){
 }
 
 function renderTrades(){
+  const limitHit = typeof hasPlan==='function' && !hasPlan('basico') && trades.length>=LITE_TRADE_LIMIT;
+  const banner = document.getElementById('limit-banner');
+  if(banner) banner.style.display = limitHit ? 'block' : 'none';
   const tbody = document.querySelector('#trades-table tbody');
   tbody.innerHTML='';
   const sorted = [...trades].sort((a,b)=> new Date(b.date)-new Date(a.date));
@@ -106,6 +376,7 @@ function renderAnalysis(){
     statsEl.innerHTML='';
     dayEl.innerHTML='<div class="empty">Cargá operaciones para ver el análisis.</div>';
     conclEl.innerHTML='';
+    applyGating();
     return;
   }
   const total = trades.length;
@@ -118,15 +389,20 @@ function renderAnalysis(){
   const tpPct = wins? ((tpCount/wins)*100).toFixed(0) : 0;
   const slPct = losses? ((slCount/losses)*100).toFixed(0) : 0;
 
+  const tpSlCards = hasPlan('basico')
+    ? `<div class="stat"><div class="n pos">${tpCount}/${wins} (${tpPct}%)</div><div class="l">Ganadoras que tocaron TP</div></div>
+       <div class="stat"><div class="n neg">${slCount}/${losses} (${slPct}%)</div><div class="l">Perdedoras que tocaron SL</div></div>`
+    : `<div class="stat" style="opacity:.6;cursor:pointer;" onclick="goToTab('planes')"><div class="n">🔒</div><div class="l">TP / SL — Plan Básico</div></div>`;
+
   statsEl.innerHTML = `
     <div class="stat"><div class="n">${total}</div><div class="l">Operaciones</div></div>
     <div class="stat"><div class="n pos">${wins}</div><div class="l">Ganadoras</div></div>
     <div class="stat"><div class="n neg">${losses}</div><div class="l">Perdedoras</div></div>
     <div class="stat"><div class="n">${winRate}%</div><div class="l">Win rate</div></div>
     <div class="stat"><div class="n ${netProfit>=0?'pos':'neg'}">${netProfit>=0?'+':''}${netProfit.toFixed(2)}</div><div class="l">P/L neto</div></div>
-    <div class="stat"><div class="n pos">${tpCount}/${wins} (${tpPct}%)</div><div class="l">Ganadoras que tocaron TP</div></div>
-    <div class="stat"><div class="n neg">${slCount}/${losses} (${slPct}%)</div><div class="l">Perdedoras que tocaron SL</div></div>
+    ${tpSlCards}
   `;
+  applyGating();
 
   const order = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
   const byDay = {};
@@ -170,7 +446,83 @@ function renderAnalysis(){
   } else {
     conclEl.innerHTML='';
   }
+
+  renderSessions();
 }
+
+// Londres 04:00–14:00, Nueva York 09:00–18:00, Asia 19:00–06:00 (cruza medianoche).
+// Como se superponen, cada hora puede caer en una sesión sola o en el solapamiento de dos.
+const SESSIONS = [
+  {name:'Asia', range:'19:00–06:00'},
+  {name:'Asia / Londres (solapamiento)', range:'04:00–06:00'},
+  {name:'Londres', range:'06:00–09:00'},
+  {name:'Londres / NY (solapamiento)', range:'09:00–14:00'},
+  {name:'Nueva York', range:'14:00–18:00'},
+  {name:'Fuera de sesión', range:'18:00–19:00'},
+];
+
+function sessionForHour(h){
+  const inAsia = (h>=19) || (h<6);
+  const inLondon = (h>=4 && h<14);
+  const inNY = (h>=9 && h<18);
+  let name;
+  if(inAsia && inLondon) name='Asia / Londres (solapamiento)';
+  else if(inLondon && inNY) name='Londres / NY (solapamiento)';
+  else if(inAsia) name='Asia';
+  else if(inLondon) name='Londres';
+  else if(inNY) name='Nueva York';
+  else name='Fuera de sesión';
+  return SESSIONS.find(s=>s.name===name);
+}
+
+function renderSessions(){
+  const tbody = document.querySelector('#session-table tbody');
+  const noteEl = document.getElementById('session-note');
+  const offsetInput = document.getElementById('session-offset');
+  const offset = parseInt(offsetInput.value,10) || 0;
+
+  const withHour = trades.filter(t=> t.hour!==null && t.hour!==undefined && !isNaN(t.hour));
+  const withoutHour = trades.length - withHour.length;
+
+  if(withHour.length===0){
+    tbody.innerHTML = '';
+    noteEl.textContent = 'Ninguna operación tiene horario registrado todavía. Al importar un reporte de MetaTrader se captura automáticamente; en la carga manual es un campo opcional.';
+    return;
+  }
+
+  const byS = {};
+  SESSIONS.forEach(s=> byS[s.name] = {win:0, loss:0, profit:0, count:0});
+  withHour.forEach(t=>{
+    const adjHour = ((t.hour + offset) % 24 + 24) % 24;
+    const s = sessionForHour(adjHour);
+    byS[s.name].count++;
+    if(t.result==='win') byS[s.name].win++; else byS[s.name].loss++;
+    byS[s.name].profit += t.profit;
+  });
+
+  let bestSession = null, bestProfit = -Infinity;
+  tbody.innerHTML = SESSIONS.map(s=>{
+    const info = byS[s.name];
+    const wr = info.count? ((info.win/info.count)*100).toFixed(0) : '-';
+    const avg = info.count? (info.profit/info.count) : 0;
+    if(info.count>0 && info.profit>bestProfit){ bestProfit=info.profit; bestSession=s.name; }
+    return `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.range}</td>
+      <td>${info.count}</td>
+      <td>${info.count? wr+'%':'-'}</td>
+      <td class="${info.profit>=0?'pos':'neg'}">${info.count? (info.profit>=0?'+':'')+info.profit.toFixed(2) : '-'}</td>
+      <td class="${avg>=0?'pos':'neg'}">${info.count? (avg>=0?'+':'')+avg.toFixed(2) : '-'}</td>
+    </tr>`;
+  }).join('');
+
+  let note = '';
+  if(bestSession) note += `Tu sesión más rentable es <strong>${bestSession}</strong>. `;
+  if(withoutHour>0) note += `${withoutHour} operación(es) sin horario registrado no se incluyen en esta tabla.`;
+  noteEl.innerHTML = note;
+}
+
+document.getElementById('session-offset').addEventListener('input', renderSessions);
 
 // ---------- IMPORTAR MT ----------
 const dropzone = document.getElementById('dropzone');
@@ -311,9 +663,10 @@ function parseCsvReport(text){
     const rawDate = iTime>=0 ? cols[iTime] : '';
     const date = normalizeDate(rawDate);
     if(!date) continue;
+    const hour = extractHour(rawDate);
     const symbol = iSymbol>=0 ? (cols[iSymbol]||'-') : '-';
     const closeReason = iComment>=0 ? detectCloseReason(cols[iComment]) : 'na';
-    results.push({date, symbol, profit, commission, closeReason});
+    results.push({date, symbol, profit, commission, closeReason, hour});
   }
   return results;
 }
@@ -368,12 +721,13 @@ function parsePositionsSection(doc){
     if(profit===0) return; // descarta P/L neto exactamente 0
     const date = normalizeDate(c[9] || c[0]);
     if(!date) return;
+    const hour = extractHour(c[9]);
     const symbol = c[2] || '-';
     const sl = parseNumber(c[7]);
     const tp = parseNumber(c[8]);
     const closePrice = parseNumber(c[10]);
     const closeReason = classifyClose(closePrice, isNaN(sl)?0:sl, isNaN(tp)?0:tp);
-    results.push({date, symbol, profit, commission, closeReason});
+    results.push({date, symbol, profit, commission, closeReason, hour});
   });
   return results;
 }
@@ -419,9 +773,10 @@ function parseHtmlReportGeneric(doc){
       if(profit===0) continue; // descarta P/L neto exactamente 0
       const date = normalizeDate(iTime>=0? cells[iTime]:'');
       if(!date) continue;
+      const hour = iTime>=0 ? extractHour(cells[iTime]) : null;
       const symbol = iSymbol>=0 ? (cells[iSymbol]||'-') : '-';
       const closeReason = iComment>=0 ? detectCloseReason(cells[iComment]) : 'na';
-      results.push({date, symbol, profit, commission, closeReason});
+      results.push({date, symbol, profit, commission, closeReason, hour});
     }
   });
   return results;
@@ -432,6 +787,14 @@ function parseHtmlReport(html){
   const positions = parsePositionsSection(doc);
   if(positions && positions.length) return positions;
   return parseHtmlReportGeneric(doc);
+}
+
+function extractHour(raw){
+  if(!raw) return null;
+  const m = String(raw).match(/(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  const h = parseInt(m[1],10);
+  return (h>=0 && h<24) ? h : null;
 }
 
 function normalizeDate(raw){
@@ -459,7 +822,7 @@ function showPreview(rows){
 
 document.getElementById('confirm-import').addEventListener('click', ()=>{
   parsedPreview.forEach(r=>{
-    trades.push({date:r.date, symbol:r.symbol, lots:'', profit:r.profit, commission:r.commission||0, result: r.profit>=0?'win':'loss', notes:'Importado de MetaTrader', closeReason:r.closeReason||'na'});
+    trades.push({date:r.date, symbol:r.symbol, lots:'', profit:r.profit, commission:r.commission||0, hour:(r.hour===undefined?null:r.hour), result: r.profit>=0?'win':'loss', notes:'Importado de MetaTrader', closeReason:r.closeReason||'na'});
   });
   save();
   document.getElementById('import-status').textContent = `Se agregaron ${parsedPreview.length} operaciones al diario.`;

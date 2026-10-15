@@ -7,18 +7,53 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<div id="login-overlay">
+  <div class="card login-card">
+    <h1>📈 Trading Journal</h1>
+    <p class="sub">Iniciá sesión para llevar tu diario</p>
+    <div><label>Tu nombre</label><input type="text" id="login-name" placeholder="Trader"></div>
+    <div style="margin-top:10px;">
+      <button class="auth-btn" id="login-google">🔵 Continuar con Google</button>
+      <button class="auth-btn" id="login-apple"> Continuar con Apple</button>
+    </div>
+    <div class="auth-divider">o con email</div>
+    <div><label>Email</label><input type="email" id="login-email" placeholder="vos@email.com"></div>
+    <div style="margin-top:10px;"><label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••"></div>
+    <div class="actionsrow" style="margin-top:14px;">
+      <button class="btn" id="login-email-btn" style="width:100%;">Continuar con email</button>
+    </div>
+    <p class="login-disclaimer">Demo: el login no usa autenticación real de Google/Apple ni verifica contraseñas. Tus datos quedan guardados solo en este navegador.</p>
+  </div>
+</div>
+
 <header>
   <h1>📈 Trading Journal</h1>
   <nav>
     <button data-tab="diario" class="active">Diario</button>
     <button data-tab="analisis">Análisis</button>
     <button data-tab="importar">Importar MT</button>
+    <button data-tab="varianza">Varianza</button>
+    <button data-tab="planes">Planes</button>
   </nav>
+  <div class="account-bar">
+    <div class="who">👤 <span id="account-name">-</span><span class="plan-badge" id="account-plan-badge">Lite</span></div>
+    <div class="links">
+      <a id="link-change-plan">Cambiar plan</a>
+      <a id="link-logout">Cerrar sesión</a>
+    </div>
+  </div>
 </header>
 <main>
 
   <!-- DIARIO -->
   <section id="diario" class="tab active">
+    <div class="card" id="limit-banner" style="display:none;border-color:var(--accent);">
+      <div class="lock-box" style="padding:10px 16px;">
+        <p style="margin:0 0 10px;">🔒 Llegaste al límite de <strong>15 operaciones</strong> del plan Lite. Pasá a Básico o Pro para cargar sin límite.</p>
+        <button class="btn unlock-btn">Ver planes</button>
+      </div>
+    </div>
     <div class="card">
       <h2>Nueva operación</h2>
       <div class="grid">
@@ -27,6 +62,7 @@
         <div><label>Lotes</label><input type="number" step="0.01" id="f-lots" placeholder="0.10"></div>
         <div><label>Resultado bruto ($)</label><input type="number" step="0.01" id="f-profit" placeholder="p.ej. 25 o -12"></div>
         <div><label>Comisión ($)</label><input type="number" step="0.01" id="f-commission" placeholder="0.00"></div>
+        <div><label>Hora de cierre (opcional)</label><input type="time" id="f-time"></div>
         <div><label>Cierre</label><select id="f-close">
           <option value="na">No especificado</option>
           <option value="tp">Take Profit</option>
@@ -58,10 +94,44 @@
   <!-- ANALISIS -->
   <section id="analisis" class="tab">
     <div class="stats" id="stats-cards"></div>
-    <div class="card">
+
+    <div class="card" id="day-analysis-locked" style="display:none;">
+      <div class="lock-box">
+        <div class="ic">🔒</div>
+        <h2 style="margin-bottom:4px;">Análisis por día — Plan Básico</h2>
+        <p>Descubrí qué día de la semana ganás y perdés más.</p>
+        <button class="btn unlock-btn">Ver planes</button>
+      </div>
+    </div>
+    <div class="card" id="day-analysis-card">
       <h2>Rendimiento por día de la semana</h2>
       <div id="day-analysis"></div>
     </div>
+
+    <div class="card" id="session-locked" style="display:none;">
+      <div class="lock-box">
+        <div class="ic">🔒</div>
+        <h2 style="margin-bottom:4px;">Análisis por sesión — Plan Pro</h2>
+        <p>Mirá tu rendimiento por sesión: Asia, Londres y Nueva York.</p>
+        <button class="btn unlock-btn">Ver planes</button>
+      </div>
+    </div>
+    <div class="card" id="session-card">
+      <h2>Rendimiento por sesión de trading</h2>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <label style="margin:0;flex-shrink:0;">Ajuste horario del bróker (hs)</label>
+        <input type="number" step="1" id="session-offset" value="-7" style="width:80px;">
+      </div>
+      <p class="hint" style="margin-top:-4px;">Los horarios de MetaTrader suelen venir adelantados respecto a tu zona horaria real. Ajustá este número (positivo o negativo) hasta que las sesiones te queden alineadas; se recalcula al toque.</p>
+      <div class="tablewrap">
+        <table id="session-table">
+          <thead><tr><th>Sesión</th><th>Horario aprox.</th><th>Trades</th><th>Win rate</th><th>PnL neto</th><th>PnL promedio</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="session-note" class="hint" style="margin-top:8px;"></div>
+    </div>
+
     <div class="card">
       <h2>Conclusiones</h2>
       <div id="conclusions" class="hint"></div>
@@ -70,27 +140,81 @@
 
   <!-- IMPORTAR -->
   <section id="importar" class="tab">
-    <div class="card">
-      <h2>Importar reporte de MetaTrader</h2>
-      <p class="hint" style="margin-top:-6px;">Subí el archivo exportado desde MT4/MT5 (Historial → Guardar como Reporte, en formato .csv o .html). La app intenta detectar automáticamente las columnas de fecha, símbolo y ganancia.</p>
-      <div class="dropzone" id="dropzone">
-        <p><strong>Arrastrá el archivo acá</strong> o hacé clic para seleccionar</p>
-        <p>Formatos: .csv, .htm, .html</p>
-        <input type="file" id="file-input" accept=".csv,.htm,.html,.txt" style="display:none;">
+    <div class="card" id="importar-locked" style="display:none;">
+      <div class="lock-box">
+        <div class="ic">🔒</div>
+        <h2 style="margin-bottom:4px;">Importar MetaTrader es una función Pro</h2>
+        <p>Subí directamente tu reporte de MT4/MT5 y la app carga, limpia y calcula todo sola. Disponible en el plan Pro.</p>
+        <button class="btn" id="unlock-importar-btn">Ver plan Pro</button>
       </div>
-      <div class="hint" id="import-status"></div>
     </div>
-    <div class="card" id="preview-card" style="display:none;">
-      <h2>Vista previa</h2>
-      <div class="tablewrap"><table id="preview-table"><thead><tr><th>Fecha</th><th>Símbolo</th><th>Comisión</th><th>P/L neto</th><th>Resultado</th><th>Cierre</th></tr></thead><tbody></tbody></table></div>
-      <div class="actionsrow">
-        <button class="btn" id="confirm-import">Agregar al diario</button>
-        <button class="btn ghost" id="cancel-import">Cancelar</button>
+    <div id="importar-content">
+      <div class="card">
+        <h2>Importar reporte de MetaTrader</h2>
+        <p class="hint" style="margin-top:-6px;">Subí el archivo exportado desde MT4/MT5 (Historial → Guardar como Reporte, en formato .csv o .html). La app intenta detectar automáticamente las columnas de fecha, símbolo y ganancia.</p>
+        <div class="dropzone" id="dropzone">
+          <p><strong>Arrastrá el archivo acá</strong> o hacé clic para seleccionar</p>
+          <p>Formatos: .csv, .htm, .html</p>
+          <input type="file" id="file-input" accept=".csv,.htm,.html,.txt" style="display:none;">
+        </div>
+        <div class="hint" id="import-status"></div>
+      </div>
+      <div class="card" id="preview-card" style="display:none;">
+        <h2>Vista previa</h2>
+        <div class="tablewrap"><table id="preview-table"><thead><tr><th>Fecha</th><th>Símbolo</th><th>Comisión</th><th>P/L neto</th><th>Resultado</th><th>Cierre</th></tr></thead><tbody></tbody></table></div>
+        <div class="actionsrow">
+          <button class="btn" id="confirm-import">Agregar al diario</button>
+          <button class="btn ghost" id="cancel-import">Cancelar</button>
+        </div>
       </div>
     </div>
   </section>
 
+  <!-- VARIANZA -->
+  <section id="varianza" class="tab">
+    <div class="card" id="varianza-locked" style="display:none;">
+      <div class="lock-box">
+        <div class="ic">🔒</div>
+        <h2 style="margin-bottom:4px;">Análisis de varianza — Plan Pro</h2>
+        <p>Medí cuánto de tu resultado es ventaja y cuánto es suerte, con simulaciones sobre tus propios datos.</p>
+        <button class="btn unlock-btn">Ver planes</button>
+      </div>
+    </div>
+    <div id="varianza-content">
+      <div class="stats" id="var-stats"></div>
+      <div class="card"><h2>Curva de equity</h2><div id="var-equity"></div></div>
+      <div class="card"><h2>¿Ventaja o suerte?</h2><div id="var-edge" style="font-size:.85rem;line-height:1.6;"></div></div>
+      <div class="card"><h2>Variabilidad por día</h2><div id="var-days" style="font-size:.85rem;line-height:1.6;"></div></div>
+      <div class="card">
+        <h2>Simulación de escenarios (Monte Carlo)</h2>
+        <div id="var-mc"></div>
+        <div class="actionsrow"><button class="btn ghost" id="var-resim">Volver a simular</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLANES -->
+  <section id="planes" class="tab">
+    <div class="card">
+      <h2>Elegí tu plan</h2>
+      <p class="hint" style="margin-top:-6px;margin-bottom:16px;">Los precios y el cobro son una simulación — no se procesa ningún pago real.</p>
+      <div class="plans-grid" id="plans-grid"></div>
+    </div>
+  </section>
+
 </main>
+
+<div class="modal-overlay" id="plan-modal">
+  <div class="card" style="max-width:360px;width:100%;text-align:center;margin-bottom:0;">
+    <div style="font-size:2rem;margin-bottom:6px;" id="plan-modal-icon">💳</div>
+    <h2 id="plan-modal-title">Cambiar de plan</h2>
+    <p class="hint" id="plan-modal-text" style="margin-bottom:16px;"></p>
+    <div class="actionsrow" style="justify-content:center;">
+      <button class="btn ghost" id="plan-modal-cancel">Cancelar</button>
+      <button class="btn" id="plan-modal-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
 
 <div id="reset-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:20px;">
   <div class="card" style="max-width:360px;width:100%;text-align:center;margin-bottom:0;">
