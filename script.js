@@ -77,13 +77,14 @@ function goToTab(tabId){
   if(tabId==='analisis') renderAnalysis();
   if(tabId==='planes') renderPlans();
   if(tabId==='varianza') renderVariance();
+  if(tabId==='calendario') renderCalendar();
   applyGating();
 }
 
 /* -------- planes -------- */
 const PLAN_FEATURES = {
   lite:   ['Diario (hasta '+LITE_TRADE_LIMIT+' operaciones)','Estadísticas básicas (win rate, P/L neto)'],
-  basico: ['Operaciones ilimitadas','Análisis por día de la semana','Estadísticas de TP / SL'],
+  basico: ['Operaciones ilimitadas','Análisis por día de la semana','Calendario de resultados','Estadísticas de TP / SL'],
   pro:    ['Importar reportes de MetaTrader','Análisis por sesión (Asia / Londres / NY)','Varianza y simulación Monte Carlo','Todo lo de Básico'],
 };
 
@@ -155,6 +156,8 @@ function applyGating(){
   document.getElementById('importar-content').style.display = okPro ? 'block' : 'none';
   document.getElementById('varianza-locked').style.display = okPro ? 'none' : 'block';
   document.getElementById('varianza-content').style.display = okPro ? 'block' : 'none';
+  document.getElementById('calendario-locked').style.display = okBasico ? 'none' : 'block';
+  document.getElementById('calendario-content').style.display = okBasico ? 'block' : 'none';
 }
 
 /* ================== VARIANZA ================== */
@@ -265,6 +268,63 @@ function renderVariance(){
   renderMonteCarlo(pnls);
 }
 document.getElementById('var-resim').addEventListener('click',()=>renderVariance());
+
+/* ================== CALENDARIO ================== */
+const MONTH_NAMES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let calY=new Date().getFullYear(), calM=new Date().getMonth(), calSel=null, calNav=false;
+
+function renderCalendar(){
+  if(!calNav){
+    const dates=trades.map(t=>t.date).filter(Boolean).sort();
+    if(dates.length){ const r=new Date(dates[dates.length-1]+'T00:00:00'); calY=r.getFullYear(); calM=r.getMonth(); }
+  }
+  const byDate={};
+  trades.forEach(t=>{ const d=byDate[t.date]||(byDate[t.date]={n:0,pnl:0,list:[]}); d.n++; d.pnl+=t.profit; d.list.push(t); });
+  const pad=n=>String(n).padStart(2,'0');
+  const first=(new Date(calY,calM,1).getDay()+6)%7;
+  const dim=new Date(calY,calM+1,0).getDate();
+  let cells='', mPnl=0, mN=0, green=0, red=0, best=null, worst=null;
+  for(let i=0;i<first;i++) cells+='<div class="cal-cell empty"></div>';
+  for(let d=1;d<=dim;d++){
+    const key=calY+'-'+pad(calM+1)+'-'+pad(d), info=byDate[key];
+    if(info){
+      mPnl+=info.pnl; mN+=info.n;
+      if(info.pnl>0) green++; else if(info.pnl<0) red++;
+      if(best===null||info.pnl>best) best=info.pnl;
+      if(worst===null||info.pnl<worst) worst=info.pnl;
+    }
+    const cls=info?(info.pnl>0?'win':(info.pnl<0?'loss':'')):'';
+    cells+=`<div class="cal-cell ${cls} ${key===calSel?'sel':''}" ${info?`data-date="${key}"`:''}><div class="d">${d}</div>${info?`<div class="p">${info.pnl>=0?'+':'-'}${Math.abs(info.pnl).toFixed(0)}</div><div class="n">${info.n} op.</div>`:''}</div>`;
+  }
+  document.getElementById('cal-title').textContent=MONTH_NAMES[calM]+' '+calY;
+  const grid=document.getElementById('cal-grid');
+  grid.innerHTML=cells;
+  grid.querySelectorAll('.cal-cell[data-date]').forEach(c=>c.addEventListener('click',()=>{ calSel=c.dataset.date; renderCalendar(); }));
+
+  const card=(v,l,c='')=>`<div class="stat"><div class="n ${c}">${v}</div><div class="l">${l}</div></div>`;
+  const sg=v=>(v>=0?'+':'-')+Math.abs(v).toFixed(2);
+  document.getElementById('cal-stats').innerHTML = mN===0 ? '' :
+    card(sg(mPnl),'P/L del mes',mPnl>=0?'pos':'neg')+card(mN,'Trades del mes')+
+    card(green,'Días verdes','pos')+card(red,'Días rojos','neg')+
+    card(sg(best),'Mejor día','pos')+card(sg(worst),'Peor día','neg');
+
+  const det=document.getElementById('cal-detail');
+  if(calSel && byDate[calSel]){
+    const info=byDate[calSel];
+    det.style.display='block';
+    det.innerHTML=`<h2>${calSel} · ${info.n} trades · <span class="${info.pnl>=0?'pos':'neg'}">${sg(info.pnl)}</span></h2>
+      <div class="tablewrap"><table><thead><tr><th>Hora (bróker)</th><th>Símbolo</th><th>Cierre</th><th>P/L neto</th></tr></thead><tbody>`+
+      [...info.list].sort((a,b)=>(a.hour??0)-(b.hour??0)).map(t=>`<tr><td>${t.hour!=null?t.hour+'h':'-'}</td><td>${t.symbol}</td><td>${closeLabel(t.closeReason)}</td><td class="${t.profit>=0?'pos':'neg'}">${sg(t.profit)}</td></tr>`).join('')+
+      '</tbody></table></div>';
+  } else det.style.display='none';
+}
+function calShift(delta){
+  calNav=true; calSel=null; calM+=delta;
+  if(calM<0){calM=11;calY--;} else if(calM>11){calM=0;calY++;}
+  renderCalendar();
+}
+document.getElementById('cal-prev').addEventListener('click',()=>calShift(-1));
+document.getElementById('cal-next').addEventListener('click',()=>calShift(1));
 
 /* ================== INICIO ================== */
 const existingUser = getUser();

@@ -116,3 +116,19 @@ td{padding:7px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
 /* modal genérico */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.show{display:flex;}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+.cal-dow{margin-bottom:4px;}
+.cal-dow div{text-align:center;font-size:.7rem;color:var(--sub);font-weight:700;}
+.cal-cell{min-height:66px;border:1px solid var(--border);border-radius:8px;padding:4px 5px;background:var(--bg);overflow:hidden;}
+.cal-cell.empty{border:none;background:transparent;}
+.cal-cell .d{font-size:.7rem;color:var(--sub);font-weight:700;}
+.cal-cell .p{font-size:.85rem;font-weight:800;margin-top:2px;}
+.cal-cell .n{font-size:.62rem;color:var(--sub);}
+.cal-cell.win{background:var(--winbg);border-color:var(--win);}
+.cal-cell.win .p{color:var(--win);}
+.cal-cell.loss{background:var(--lossbg);border-color:var(--loss);}
+.cal-cell.loss .p{color:var(--loss);}
+.cal-cell[data-date]{cursor:pointer;}
+.cal-cell.sel{outline:2px solid var(--accent);}
+@media (max-width:480px){.cal-cell{min-height:54px;padding:3px;}.cal-cell .p{font-size:.72rem;}.cal-cell .n{font-size:.55rem;}}

@@ -33,6 +33,7 @@
     <button data-tab="diario" class="active">Diario</button>
     <button data-tab="analisis">Análisis</button>
     <button data-tab="importar">Importar MT</button>
+    <button data-tab="calendario">Calendario</button>
     <button data-tab="varianza">Varianza</button>
     <button data-tab="planes">Planes</button>
   </nav>
@@ -167,6 +168,31 @@
           <button class="btn ghost" id="cancel-import">Cancelar</button>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- CALENDARIO -->
+  <section id="calendario" class="tab">
+    <div class="card" id="calendario-locked" style="display:none;">
+      <div class="lock-box">
+        <div class="ic">🔒</div>
+        <h2 style="margin-bottom:4px;">Calendario de resultados — Plan Básico</h2>
+        <p>Mirá día por día cuántos trades hiciste y si cerraste en verde o en rojo.</p>
+        <button class="btn unlock-btn">Ver planes</button>
+      </div>
+    </div>
+    <div id="calendario-content">
+      <div class="card">
+        <div class="cal-head">
+          <button class="btn ghost" id="cal-prev">‹</button>
+          <h2 id="cal-title" style="margin:0;"></h2>
+          <button class="btn ghost" id="cal-next">›</button>
+        </div>
+        <div class="cal-grid cal-dow"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+      <div class="stats" id="cal-stats"></div>
+      <div class="card" id="cal-detail" style="display:none;"></div>
     </div>
   </section>
 
