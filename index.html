@@ -10,12 +10,13 @@
 
 <div id="login-overlay">
   <div class="card login-card">
+    <div style="text-align:right;margin-bottom:6px;"><select class="lang-select" title="Idioma" aria-label="Idioma"><option value="es">Español</option><option value="en">English</option><option value="pt">Português</option></select></div>
     <h1>📈 Trading Journal</h1>
     <p class="sub">Iniciá sesión para llevar tu diario</p>
     <div><label>Tu nombre</label><input type="text" id="login-name" placeholder="Trader"></div>
     <div style="margin-top:10px;">
-      <button class="auth-btn" id="login-google">🔵 Continuar con Google</button>
-      <button class="auth-btn" id="login-apple"> Continuar con Apple</button>
+      <button class="auth-btn" id="login-google">🔵 <span>Continuar con Google</span></button>
+      <button class="auth-btn" id="login-apple">🍎 <span>Continuar con Apple</span></button>
     </div>
     <div class="auth-divider">o con email</div>
     <div><label>Email</label><input type="email" id="login-email" placeholder="vos@email.com"></div>
@@ -40,6 +41,7 @@
   <div class="account-bar">
     <div class="who">👤 <span id="account-name">-</span><span class="plan-badge" id="account-plan-badge">Lite</span></div>
     <div class="links">
+      <select class="lang-select" title="Idioma" aria-label="Idioma"><option value="es">Español</option><option value="en">English</option><option value="pt">Português</option></select>
       <a id="link-change-plan">Cambiar plan</a>
       <a id="link-logout">Cerrar sesión</a>
     </div>
@@ -51,7 +53,7 @@
   <section id="diario" class="tab active">
     <div class="card" id="limit-banner" style="display:none;border-color:var(--accent);">
       <div class="lock-box" style="padding:10px 16px;">
-        <p style="margin:0 0 10px;">🔒 Llegaste al límite de <strong>15 operaciones</strong> del plan Lite. Pasá a Básico o Pro para cargar sin límite.</p>
+        <p style="margin:0 0 10px;">🔒 <span>Llegaste al límite de</span> <strong>15 operaciones</strong> del plan Lite. Pasá a Básico o Pro para cargar sin límite.</p>
         <button class="btn unlock-btn">Ver planes</button>
       </div>
     </div>
@@ -76,7 +78,7 @@
       <textarea id="f-notes" placeholder="Setup, emociones, error cometido..."></textarea>
       <div class="actionsrow">
         <button class="btn" id="add-trade">Agregar operación</button>
-        <button class="btn ghost" id="clear-all">🗑️ Restablecer</button>
+        <button class="btn ghost" id="clear-all">🗑️ <span>Restablecer</span></button>
       </div>
     </div>
 
@@ -188,7 +190,7 @@
           <h2 id="cal-title" style="margin:0;"></h2>
           <button class="btn ghost" id="cal-next">›</button>
         </div>
-        <div class="cal-grid cal-dow"><div>L</div><div>M</div><div>M</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
+        <div class="cal-grid cal-dow"><div data-dow>L</div><div data-dow>M</div><div data-dow>M</div><div data-dow>J</div><div data-dow>V</div><div data-dow>S</div><div data-dow>D</div></div>
         <div class="cal-grid" id="cal-grid"></div>
       </div>
       <div class="stats" id="cal-stats"></div>

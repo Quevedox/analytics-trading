@@ -52,7 +52,7 @@ document.getElementById('login-email-btn').addEventListener('click', ()=>{
   const name = document.getElementById('login-name').value.trim() || 'Trader';
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-password').value;
-  if(!email || !pass){ alert('Completá email y contraseña.'); return; }
+  if(!email || !pass){ alert(T('Completá email y contraseña.')); return; }
   doLogin(name, email, 'email');
 });
 
@@ -296,7 +296,7 @@ function renderCalendar(){
     const cls=info?(info.pnl>0?'win':(info.pnl<0?'loss':'')):'';
     cells+=`<div class="cal-cell ${cls} ${key===calSel?'sel':''}" ${info?`data-date="${key}"`:''}><div class="d">${d}</div>${info?`<div class="p">${info.pnl>=0?'+':'-'}${Math.abs(info.pnl).toFixed(0)}</div><div class="n">${info.n} op.</div>`:''}</div>`;
   }
-  document.getElementById('cal-title').textContent=MONTH_NAMES[calM]+' '+calY;
+  document.getElementById('cal-title').textContent=T(MONTH_NAMES[calM])+' '+calY;
   const grid=document.getElementById('cal-grid');
   grid.innerHTML=cells;
   grid.querySelectorAll('.cal-cell[data-date]').forEach(c=>c.addEventListener('click',()=>{ calSel=c.dataset.date; renderCalendar(); }));
@@ -326,6 +326,183 @@ function calShift(delta){
 document.getElementById('cal-prev').addEventListener('click',()=>calShift(-1));
 document.getElementById('cal-next').addEventListener('click',()=>calShift(1));
 
+/* ================== IDIOMAS (ES / EN / PT) ================== */
+const LANG_KEY='tj_lang_v1';
+const DOW={es:'LMMJVSD',en:'MTWTFSS',pt:'STQQSSD'};
+const I18N=Object.assign(Object.create(null),{
+"Iniciá sesión para llevar tu diario":["Sign in to keep your journal","Entre para manter seu diário"],
+"Tu nombre":["Your name","Seu nome"],
+"Continuar con Google":["Continue with Google","Continuar com Google"],
+"Continuar con Apple":["Continue with Apple","Continuar com Apple"],
+"o con email":["or with email","ou com email"],
+"Contraseña":["Password","Senha"],
+"Continuar con email":["Continue with email","Continuar com email"],
+"Demo: el login no usa autenticación real de Google/Apple ni verifica contraseñas. Tus datos quedan guardados solo en este navegador.":["Demo: login does not use real Google/Apple authentication or verify passwords. Your data stays only in this browser.","Demo: o login não usa autenticação real do Google/Apple nem verifica senhas. Seus dados ficam salvos apenas neste navegador."],
+"Idioma":["Language","Idioma"],
+"Diario":["Journal","Diário"],"Análisis":["Analysis","Análise"],"Importar MT":["Import MT","Importar MT"],"Calendario":["Calendar","Calendário"],"Varianza":["Variance","Variância"],"Planes":["Plans","Planos"],
+"Cambiar plan":["Change plan","Mudar plano"],"Cerrar sesión":["Log out","Sair"],
+"Llegaste al límite de":["You reached the limit of","Você atingiu o limite de"],
+"15 operaciones":["15 trades","15 operações"],
+"del plan Lite. Pasá a Básico o Pro para cargar sin límite.":["of the Lite plan. Upgrade to Basic or Pro to log without limits.","do plano Lite. Mude para Básico ou Pro para registrar sem limite."],
+"Ver planes":["See plans","Ver planos"],
+"Nueva operación":["New trade","Nova operação"],"Fecha":["Date","Data"],"Símbolo":["Symbol","Símbolo"],"Lotes":["Lots","Lotes"],
+"Resultado bruto ($)":["Gross result ($)","Resultado bruto ($)"],"Comisión ($)":["Commission ($)","Comissão ($)"],
+"Hora de cierre (opcional)":["Close time (optional)","Hora de fechamento (opcional)"],"Cierre":["Close","Fechamento"],
+"No especificado":["Not specified","Não especificado"],
+"El resultado (ganador/perdedor) se calcula solo, según el P/L neto (bruto − comisión).":["The result (winner/loser) is calculated automatically from net P/L (gross − commission).","O resultado (ganhador/perdedor) é calculado automaticamente pelo P/L líquido (bruto − comissão)."],
+"Notas (opcional)":["Notes (optional)","Notas (opcional)"],"Agregar operación":["Add trade","Adicionar operação"],"Restablecer":["Reset","Redefinir"],
+"p.ej. 25 o -12":["e.g. 25 or -12","ex.: 25 ou -12"],"Setup, emociones, error cometido...":["Setup, emotions, mistake made...","Setup, emoções, erro cometido..."],
+"Historial":["History","Histórico"],"Día":["Day","Dia"],"Resultado":["Result","Resultado"],"Comisión":["Commission","Comissão"],"P/L neto":["Net P/L","P/L líquido"],"Notas":["Notes","Notas"],
+"Ganador":["Winner","Ganhador"],"Perdedor":["Loser","Perdedor"],
+"Todavía no cargaste operaciones.":["You haven't logged any trades yet.","Você ainda não registrou operações."],
+"Lunes":["Monday","Segunda"],"Martes":["Tuesday","Terça"],"Miércoles":["Wednesday","Quarta"],"Jueves":["Thursday","Quinta"],"Viernes":["Friday","Sexta"],"Sábado":["Saturday","Sábado"],"Domingo":["Sunday","Domingo"],
+"Enero":["January","Janeiro"],"Febrero":["February","Fevereiro"],"Marzo":["March","Março"],"Abril":["April","Abril"],"Mayo":["May","Maio"],"Junio":["June","Junho"],"Julio":["July","Julho"],"Agosto":["August","Agosto"],"Septiembre":["September","Setembro"],"Octubre":["October","Outubro"],"Noviembre":["November","Novembro"],"Diciembre":["December","Dezembro"],
+"Análisis por día — Plan Básico":["Weekday analysis — Basic plan","Análise por dia — Plano Básico"],
+"Descubrí qué día de la semana ganás y perdés más.":["Find out which weekday you win and lose the most.","Descubra em qual dia da semana você mais ganha e perde."],
+"Rendimiento por día de la semana":["Performance by weekday","Desempenho por dia da semana"],
+"Análisis por sesión — Plan Pro":["Session analysis — Pro plan","Análise por sessão — Plano Pro"],
+"Mirá tu rendimiento por sesión: Asia, Londres y Nueva York.":["See your performance by session: Asia, London and New York.","Veja seu desempenho por sessão: Ásia, Londres e Nova York."],
+"Rendimiento por sesión de trading":["Performance by trading session","Desempenho por sessão de trading"],
+"Ajuste horario del bróker (hs)":["Broker time offset (hrs)","Ajuste de horário da corretora (h)"],
+"Los horarios de MetaTrader suelen venir adelantados respecto a tu zona horaria real. Ajustá este número (positivo o negativo) hasta que las sesiones te queden alineadas; se recalcula al toque.":["MetaTrader times are usually ahead of your real time zone. Adjust this number (positive or negative) until the sessions line up; it recalculates instantly.","Os horários do MetaTrader costumam estar adiantados em relação ao seu fuso real. Ajuste este número (positivo ou negativo) até as sessões alinharem; recalcula na hora."],
+"Sesión":["Session","Sessão"],"Horario aprox.":["Approx. hours","Horário aprox."],"PnL neto":["Net PnL","PnL líquido"],"PnL promedio":["Average PnL","PnL médio"],"Conclusiones":["Conclusions","Conclusões"],
+"Asia / Londres (solapamiento)":["Asia / London (overlap)","Ásia / Londres (sobreposição)"],"Londres":["London","Londres"],"Londres / NY (solapamiento)":["London / NY (overlap)","Londres / NY (sobreposição)"],"Nueva York":["New York","Nova York"],"Fuera de sesión":["Off-session","Fora de sessão"],
+"Importar MetaTrader es una función Pro":["MetaTrader import is a Pro feature","Importar MetaTrader é um recurso Pro"],
+"Subí directamente tu reporte de MT4/MT5 y la app carga, limpia y calcula todo sola. Disponible en el plan Pro.":["Upload your MT4/MT5 report directly and the app loads, cleans and calculates everything. Available on the Pro plan.","Envie seu relatório do MT4/MT5 e o app carrega, limpa e calcula tudo sozinho. Disponível no plano Pro."],
+"Ver plan Pro":["See Pro plan","Ver plano Pro"],"Importar reporte de MetaTrader":["Import MetaTrader report","Importar relatório do MetaTrader"],
+"Subí el archivo exportado desde MT4/MT5 (Historial → Guardar como Reporte, en formato .csv o .html). La app intenta detectar automáticamente las columnas de fecha, símbolo y ganancia.":["Upload the file exported from MT4/MT5 (History → Save as Report, in .csv or .html format). The app tries to detect the date, symbol and profit columns automatically.","Envie o arquivo exportado do MT4/MT5 (Histórico → Salvar como Relatório, em .csv ou .html). O app tenta detectar automaticamente as colunas de data, símbolo e lucro."],
+"Arrastrá el archivo acá":["Drag the file here","Arraste o arquivo aqui"],"o hacé clic para seleccionar":["or click to select","ou clique para selecionar"],
+"Vista previa":["Preview","Pré-visualização"],"Agregar al diario":["Add to journal","Adicionar ao diário"],"Cancelar":["Cancel","Cancelar"],
+"Calendario de resultados — Plan Básico":["Results calendar — Basic plan","Calendário de resultados — Plano Básico"],
+"Mirá día por día cuántos trades hiciste y si cerraste en verde o en rojo.":["See day by day how many trades you made and whether you closed green or red.","Veja dia a dia quantos trades você fez e se fechou no verde ou no vermelho."],
+"Análisis de varianza — Plan Pro":["Variance analysis — Pro plan","Análise de variância — Plano Pro"],
+"Medí cuánto de tu resultado es ventaja y cuánto es suerte, con simulaciones sobre tus propios datos.":["Measure how much of your result is edge and how much is luck, with simulations on your own data.","Meça quanto do seu resultado é vantagem e quanto é sorte, com simulações sobre seus próprios dados."],
+"Curva de equity":["Equity curve","Curva de patrimônio"],"¿Ventaja o suerte?":["Edge or luck?","Vantagem ou sorte?"],"Variabilidad por día":["Daily variability","Variabilidade por dia"],
+"Simulación de escenarios (Monte Carlo)":["Scenario simulation (Monte Carlo)","Simulação de cenários (Monte Carlo)"],"Volver a simular":["Simulate again","Simular novamente"],
+"Elegí tu plan":["Choose your plan","Escolha seu plano"],
+"Los precios y el cobro son una simulación — no se procesa ningún pago real.":["Prices and billing are a simulation — no real payment is processed.","Os preços e a cobrança são uma simulação — nenhum pagamento real é processado."],
+"Cambiar de plan":["Change plan","Mudar de plano"],"Confirmar":["Confirm","Confirmar"],
+"¿Restablecer todo?":["Reset everything?","Redefinir tudo?"],"Esto va a borrar":["This will delete","Isso vai apagar"],"todas":["all","todas"],
+"las operaciones guardadas en el diario de forma permanente. Esta acción no se puede deshacer.":["the trades saved in the journal permanently. This action cannot be undone.","as operações salvas no diário permanentemente. Esta ação não pode ser desfeita."],
+"Sí, borrar todo":["Yes, delete everything","Sim, apagar tudo"],
+"Operaciones":["Trades","Operações"],"Ganadoras":["Winners","Ganhadoras"],"Perdedoras":["Losers","Perdedoras"],
+"Ganadoras que tocaron TP":["Winners that hit TP","Ganhadoras que bateram TP"],"Perdedoras que tocaron SL":["Losers that hit SL","Perdedoras que bateram SL"],
+"Tu sesión más rentable es":["Your most profitable session is","Sua sessão mais rentável é"],
+"• Tu mejor día en resultado neto es":["• Your best day by net result is","• Seu melhor dia em resultado líquido é"],
+"• Tu peor día en resultado neto es":["• Your worst day by net result is","• Seu pior dia em resultado líquido é"],
+"• El día con mejor win rate es":["• The day with the best win rate is","• O dia com melhor win rate é"],
+"• Win rate general: {a} sobre {b} operaciones.":["• Overall win rate: {a} over {b} trades.","• Win rate geral: {a} em {b} operações."],
+"{n} op ·":["{n} trades ·","{n} op ·"],"{n} op.":["{n} tr.","{n} op."],
+"P/L del mes":["Month P/L","P/L do mês"],"Trades del mes":["Trades this month","Trades do mês"],"Días verdes":["Green days","Dias verdes"],"Días rojos":["Red days","Dias vermelhos"],"Mejor día":["Best day","Melhor dia"],"Peor día":["Worst day","Pior dia"],
+"Expectativa por trade":["Expectancy per trade","Expectativa por trade"],"Varianza (P/L)":["Variance (P/L)","Variância (P/L)"],"Desvío estándar":["Standard deviation","Desvio padrão"],
+"Payoff (ganancia/pérdida prom.)":["Payoff (avg win/avg loss)","Payoff (ganho/perda médios)"],"Win rate de equilibrio":["Break-even win rate","Win rate de equilíbrio"],
+"Racha máx. de pérdidas":["Max losing streak","Maior sequência de perdas"],"Racha máx. de ganancias":["Max winning streak","Maior sequência de ganhos"],"Drawdown máximo":["Maximum drawdown","Drawdown máximo"],
+"Estadístico t:":["t-statistic:","Estatística t:"],
+"(con {n} operaciones). Tu promedio es positivo, pero con esta cantidad de operaciones":["(with {n} trades). Your average is positive, but with this number of trades","(com {n} operações). Sua média é positiva, mas com essa quantidade de operações"],
+"todavía no se puede descartar que sea suerte":["it is still not possible to rule out luck","ainda não dá para descartar que seja sorte"],
+"(con {n} operaciones). Tu promedio es lo bastante alto frente a la variabilidad como para que":["(with {n} trades). Your average is high enough relative to the variability that","(com {n} operações). Sua média é alta o bastante frente à variabilidade para que"],
+"sea poco probable que sea solo suerte":["it is unlikely to be just luck","seja improvável que seja só sorte"],
+"(≈95% de confianza).":["(≈95% confidence).","(≈95% de confiança)."],
+"(con {n} operaciones). Tu promedio por trade es negativo o nulo:":["(with {n} trades). Your average per trade is negative or zero:","(com {n} operações). Sua média por trade é negativa ou nula:"],
+"hoy los datos no muestran ventaja":["today the data shows no edge","hoje os dados não mostram vantagem"],
+"Para llegar a t≈2 con tu media y desvío actuales harían falta unas":["To reach t≈2 with your current mean and deviation you would need about","Para chegar a t≈2 com sua média e desvio atuais seriam necessárias cerca de"],
+"operaciones (te faltan ~{n}).":["trades (~{n} to go).","operações (faltam ~{n})."],"operaciones.":["trades.","operações."],
+"Aproximación estadística que asume operaciones independientes; sirve como referencia, no como garantía.":["Statistical approximation assuming independent trades; a reference, not a guarantee.","Aproximação estatística que assume operações independentes; serve como referência, não como garantia."],
+"{n} días operados · promedio diario":["{n} days traded · daily average","{n} dias operados · média diária"],
+"· desvío diario":["· daily deviation","· desvio diário"],"· peor día":["· worst day","· pior dia"],"· días positivos":["· positive days","· dias positivos"],
+"Tu mejor día representa el":["Your best day accounts for","Seu melhor dia representa"],
+"de tu ganancia total. Muchos fondeos limitan ese porcentaje (regla de consistencia): revisá la de tu cuenta.":["of your total profit. Many funded programs cap this percentage (consistency rule): check your account's.","do seu lucro total. Muitas mesas proprietárias limitam essa porcentagem (regra de consistência): confira a da sua conta."],
+"Se repiten tus {n} operaciones {s} veces sacándolas al azar de tu historial. Muestra cuánto puede variar el resultado solo por el orden de la suerte, con la misma estrategia.":["Your {n} trades are repeated {s} times, drawn at random from your history. It shows how much the result can vary from luck alone, with the same strategy.","Suas {n} operações são repetidas {s} vezes, sorteadas do seu histórico. Mostra quanto o resultado pode variar só pela sorte, com a mesma estratégia."],
+"Métrica":["Metric","Métrica"],"Mejor caso (5%)":["Best case (5%)","Melhor caso (5%)"],"Típico (mediana)":["Typical (median)","Típico (mediana)"],"Peor caso (5%)":["Worst case (5%)","Pior caso (5%)"],
+"Resultado final":["Final result","Resultado final"],"Racha de pérdidas":["Losing streak","Sequência de perdas"],
+"Probabilidad de terminar en negativo con este mismo número de operaciones:":["Probability of ending negative with this same number of trades:","Probabilidade de terminar no negativo com este mesmo número de operações:"],
+". Asume que los trades son independientes entre sí.":[". Assumes trades are independent of each other.",". Assume que os trades são independentes entre si."],
+"Básico":["Basic","Básico"],
+"Diario (hasta 15 operaciones)":["Journal (up to 15 trades)","Diário (até 15 operações)"],
+"Estadísticas básicas (win rate, P/L neto)":["Basic stats (win rate, net P/L)","Estatísticas básicas (win rate, P/L líquido)"],
+"Operaciones ilimitadas":["Unlimited trades","Operações ilimitadas"],"Análisis por día de la semana":["Weekday analysis","Análise por dia da semana"],
+"Calendario de resultados":["Results calendar","Calendário de resultados"],"Estadísticas de TP / SL":["TP / SL statistics","Estatísticas de TP / SL"],
+"Importar reportes de MetaTrader":["Import MetaTrader reports","Importar relatórios do MetaTrader"],
+"Análisis por sesión (Asia / Londres / NY)":["Session analysis (Asia / London / NY)","Análise por sessão (Ásia / Londres / NY)"],
+"Varianza y simulación Monte Carlo":["Variance and Monte Carlo simulation","Variância e simulação Monte Carlo"],"Todo lo de Básico":["Everything in Basic","Tudo do Básico"],
+"Elegir este plan":["Choose this plan","Escolher este plano"],"/mes":["/mo","/mês"],"Plan actual":["Current plan","Plano atual"],
+"Pasar a Plan {p}":["Switch to {p} plan","Mudar para o plano {p}"],"Volver a Plan {p}":["Back to {p} plan","Voltar ao plano {p}"],
+"Vas a cambiar al plan {p} ({q}). Esto es una simulación: no se realiza ningún cobro real.":["You are switching to the {p} plan ({q}). This is a simulation: no real charge is made.","Você vai mudar para o plano {p} ({q}). Isto é uma simulação: nenhuma cobrança real é feita."],
+"Vas a volver al plan {p}. Podrías perder acceso a funciones que ya desbloqueaste.":["You are going back to the {p} plan. You could lose access to features you already unlocked.","Você vai voltar ao plano {p}. Pode perder acesso a recursos que já desbloqueou."],
+"Poné una fecha.":["Pick a date.","Informe uma data."],"Completá email y contraseña.":["Enter email and password.","Preencha email e senha."]
+});
+const PATTERNS=[];
+Object.keys(I18N).forEach(k=>{
+  if(!k.includes('{')) return;
+  const names=[];
+  const rx=new RegExp('^'+k.replace(/[.*+?^$()|[\]\\]/g,'\\$&').replace(/\{(\w+)\}/g,(m,n)=>{names.push(n);return '(.+?)';})+'$');
+  PATTERNS.push({rx,names,k});
+});
+let LANG='es';
+function xlate(key,lang){
+  if(lang==='es') return key;
+  const i=lang==='en'?0:1, e=I18N[key];
+  if(e) return e[i];
+  for(const p of PATTERNS){
+    const m=key.match(p.rx);
+    if(m){ let out=I18N[p.k][i]; p.names.forEach((n,j)=>{ const v=m[j+1]; out=out.split('{'+n+'}').join(I18N[v]?I18N[v][i]:v); }); return out; }
+  }
+  return null;
+}
+function T(es){ const r=xlate(es,LANG); return r===null?es:r; }
+
+const NODE_REC=new WeakMap();
+function trNode(n){
+  const t=n.nodeValue.trim(); if(!t) return;
+  let rec=NODE_REC.get(n);
+  if(rec && t!==rec.shown){ rec=null; NODE_REC.delete(n); }
+  const key=rec?rec.key:t;
+  const out=LANG==='es'?key:xlate(key,LANG);
+  if(out===null || (!rec && LANG==='es')) return;
+  if(!rec){ rec={key,shown:key}; NODE_REC.set(n,rec); }
+  if(out!==rec.shown){ n.nodeValue=n.nodeValue.replace(rec.shown,()=>out); rec.shown=out; }
+}
+function trAttr(el){
+  el.__i18n=el.__i18n||{};
+  ['placeholder','title','aria-label'].forEach(a=>{
+    const v=el.getAttribute(a); if(v===null) return;
+    let rec=el.__i18n[a];
+    if(rec && v!==rec.shown) rec=null;
+    const key=rec?rec.key:v;
+    const out=LANG==='es'?key:xlate(key,LANG);
+    if(out===null || (!rec && LANG==='es')) return;
+    if(!rec) rec=el.__i18n[a]={key,shown:key};
+    if(out!==rec.shown){ el.setAttribute(a,out); rec.shown=out; }
+  });
+}
+function walkI18n(root){
+  const tw=document.createTreeWalker(root,4); let n;
+  while((n=tw.nextNode())){ const pn=n.parentNode&&n.parentNode.nodeName; if(pn!=='SCRIPT'&&pn!=='STYLE') trNode(n); }
+  if(root.nodeType===1){
+    if(root.matches('[placeholder],[title],[aria-label]')) trAttr(root);
+    root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(trAttr);
+  }
+}
+function applyLang(l,initial){
+  LANG=l;
+  try{ localStorage.setItem(LANG_KEY,l); }catch(e){}
+  document.documentElement.lang=l;
+  document.querySelectorAll('.lang-select').forEach(sel=>sel.value=l);
+  document.querySelectorAll('[data-dow]').forEach((e,i)=>e.textContent=DOW[l][i]);
+  walkI18n(document.body);
+  if(!initial) renderCalendar();
+}
+function initLang(){
+  let l=null; try{ l=localStorage.getItem(LANG_KEY); }catch(e){}
+  if(!l){ const nl=(navigator.language||'es').slice(0,2); l=(nl==='en'||nl==='pt')?nl:'es'; }
+  new MutationObserver(muts=>muts.forEach(m=>{
+    if(m.type==='characterData') trNode(m.target);
+    m.addedNodes.forEach(nd=>{ if(nd.nodeType===3) trNode(nd); else if(nd.nodeType===1) walkI18n(nd); });
+  })).observe(document.body,{childList:true,subtree:true,characterData:true});
+  document.querySelectorAll('.lang-select').forEach(sel=>sel.addEventListener('change',()=>applyLang(sel.value)));
+  applyLang(l,true);
+}
+
 /* ================== INICIO ================== */
 const existingUser = getUser();
 if(existingUser){
@@ -335,6 +512,7 @@ if(existingUser){
 }
 refreshAccountBar();
 applyGating();
+initLang();
 
 // tabs
 document.querySelectorAll('nav button').forEach(btn=>{
@@ -353,7 +531,7 @@ document.getElementById('add-trade').addEventListener('click', ()=>{
     return;
   }
   const date = document.getElementById('f-date').value;
-  if(!date){ alert('Poné una fecha.'); return; }
+  if(!date){ alert(T('Poné una fecha.')); return; }
   const symbol = document.getElementById('f-symbol').value.trim() || '-';
   const lots = document.getElementById('f-lots').value;
   const grossProfit = parseFloat(document.getElementById('f-profit').value) || 0;
