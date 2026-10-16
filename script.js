@@ -18,9 +18,9 @@ const PLAN_ORDER = ['lite','basico','pro'];
 const LITE_TRADE_LIMIT = 15;
 
 const PLAN_INFO = {
-  lite:   {label:'Lite',   price:'Gratis',     priceSub:''},
-  basico: {label:'Básico', price:'$9.990',     priceSub:'/mes'},
-  pro:    {label:'Pro',    price:'$19.990',    priceSub:'/mes'},
+  lite:   {label:'Lite',   price:'US$ 0',     priceSub:''},
+  basico: {label:'Básico', price:'US$ 7',     priceSub:'/mes'},
+  pro:    {label:'Pro',    price:'US$ 20',    priceSub:'/mes'},
 };
 
 function getUser(){
