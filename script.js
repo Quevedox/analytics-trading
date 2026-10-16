@@ -1,3 +1,9 @@
+const PAGE=document.body.dataset.page||"spa";
+(function(){const g=document.getElementById.bind(document),q=document.querySelector.bind(document);
+ document.getElementById=id=>g(id)||document.createElement("div");
+ document.querySelector=sel=>q(sel)||document.createElement("div");})();
+function navTo(page){ if(PAGE==="spa") location.hash="#"+page; else location.href=(page==="home"?"index":page)+".html"; }
+
 const STORAGE_KEY = 'tj_trades_v1';
 let trades = [];
 let parsedPreview = [];
@@ -72,6 +78,7 @@ function refreshAccountBar(){
 }
 
 function goToTab(tabId){
+  if(tabId==='planes'){ navTo('planes'); return; }
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tabId));
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.id===tabId));
   if(tabId==='analisis') renderAnalysis();
@@ -429,7 +436,24 @@ const I18N=Object.assign(Object.create(null),{
 "Pasar a Plan {p}":["Switch to {p} plan","Mudar para o plano {p}"],"Volver a Plan {p}":["Back to {p} plan","Voltar ao plano {p}"],
 "Vas a cambiar al plan {p} ({q}). Esto es una simulación: no se realiza ningún cobro real.":["You are switching to the {p} plan ({q}). This is a simulation: no real charge is made.","Você vai mudar para o plano {p} ({q}). Isto é uma simulação: nenhuma cobrança real é feita."],
 "Vas a volver al plan {p}. Podrías perder acceso a funciones que ya desbloqueaste.":["You are going back to the {p} plan. You could lose access to features you already unlocked.","Você vai voltar ao plano {p}. Pode perder acesso a recursos que já desbloqueou."],
-"Poné una fecha.":["Pick a date.","Informe uma data."],"Completá email y contraseña.":["Enter email and password.","Preencha email e senha."]
+"Poné una fecha.":["Pick a date.","Informe uma data."],"Completá email y contraseña.":["Enter email and password.","Preencha email e senha."],
+"Inicio":["Home","Início"],
+"Tu diario de trading, con datos que importan":["Your trading journal, with data that matters","Seu diário de trading, com dados que importam"],
+"Importá tu reporte de MetaTrader y descubrí qué días, sesiones y hábitos te hacen ganar o perder.":["Import your MetaTrader report and find out which days, sessions and habits make you win or lose.","Importe seu relatório do MetaTrader e descubra quais dias, sessões e hábitos fazem você ganhar ou perder."],
+"Entrar al dashboard":["Go to dashboard","Entrar no dashboard"],
+"Qué podés hacer":["What you can do","O que você pode fazer"],
+"Importación de MetaTrader":["MetaTrader import","Importação do MetaTrader"],
+"Subí tu reporte de MT4/MT5 y se carga solo, con comisiones incluidas.":["Upload your MT4/MT5 report and it loads automatically, commissions included.","Envie seu relatório do MT4/MT5 e ele carrega sozinho, com comissões incluídas."],
+"Análisis por día y sesión":["Analysis by day and session","Análise por dia e sessão"],
+"Descubrí cuándo rendís mejor: Asia, Londres o Nueva York.":["Find out when you perform best: Asia, London or New York.","Descubra quando você rende mais: Ásia, Londres ou Nova York."],
+"Mirá cada día en verde o en rojo, con sus trades y su P/L.":["See every day in green or red, with its trades and P/L.","Veja cada dia no verde ou no vermelho, com seus trades e P/L."],
+"Medí cuánto es ventaja y cuánto es suerte, con simulaciones Monte Carlo.":["Measure how much is edge and how much is luck, with Monte Carlo simulations.","Meça quanto é vantagem e quanto é sorte, com simulações Monte Carlo."],
+"Cuántas ganadoras tocaron TP y cuántas perdedoras SL.":["How many winners hit TP and how many losers hit SL.","Quantas ganhadoras bateram TP e quantas perdedoras bateram SL."],
+"En tu idioma":["In your language","No seu idioma"],
+"Disponible en español, inglés y portugués.":["Available in Spanish, English and Portuguese.","Disponível em espanhol, inglês e português."],
+"Empezá gratis":["Start for free","Comece grátis"],
+"El plan Lite no tiene costo. Sin tarjeta, sin vueltas.":["The Lite plan is free. No card, no hassle.","O plano Lite é gratuito. Sem cartão, sem complicação."],
+"El trading implica riesgo de pérdida. Esta herramienta es solo de análisis y no constituye asesoramiento financiero.":["Trading involves risk of loss. This tool is for analysis only and is not financial advice.","O trading envolve risco de perda. Esta ferramenta é apenas de análise e não constitui aconselhamento financeiro."]
 });
 const PATTERNS=[];
 Object.keys(I18N).forEach(k=>{
@@ -504,15 +528,23 @@ function initLang(){
 }
 
 /* ================== INICIO ================== */
-const existingUser = getUser();
-if(existingUser){
-  document.getElementById('login-overlay').style.display = 'none';
-} else {
-  document.getElementById('login-overlay').style.display = 'flex';
+function currentView(){ const h=(location.hash||'#home').slice(1); return ['home','dashboard','planes'].includes(h)?h:'home'; }
+function gate(){
+  const need = PAGE==='home' ? false : (PAGE==='spa' ? currentView()!=='home' : true);
+  document.getElementById('login-overlay').style.display = (!getUser() && need) ? 'flex' : 'none';
 }
+gate();
 refreshAccountBar();
 applyGating();
 initLang();
+function spaRoute(){
+  const v=currentView();
+  document.querySelectorAll('.spa-view').forEach(e=>e.style.display=e.dataset.view===v?'block':'none');
+  window.scrollTo(0,0); gate();
+  if(v==='planes') renderPlans();
+}
+if(PAGE==='spa'){ window.addEventListener('hashchange',spaRoute); spaRoute(); }
+if(PAGE==='planes') renderPlans();
 
 // tabs
 document.querySelectorAll('nav button').forEach(btn=>{

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planes · Trading Journal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="planes">
+<div id="login-overlay">
+  <div class="card login-card">
+    <div style="text-align:right;margin-bottom:6px;"><select class="lang-select" title="Idioma" aria-label="Idioma"><option value="es">Español</option><option value="en">English</option><option value="pt">Português</option></select></div>
+    <h1>📈 Trading Journal</h1>
+    <p class="sub">Iniciá sesión para llevar tu diario</p>
+    <div><label>Tu nombre</label><input type="text" id="login-name" placeholder="Trader"></div>
+    <div style="margin-top:10px;">
+      <button class="auth-btn" id="login-google">🔵 <span>Continuar con Google</span></button>
+      <button class="auth-btn" id="login-apple">🍎 <span>Continuar con Apple</span></button>
+    </div>
+    <div class="auth-divider">o con email</div>
+    <div><label>Email</label><input type="email" id="login-email" placeholder="vos@email.com"></div>
+    <div style="margin-top:10px;"><label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••"></div>
+    <div class="actionsrow" style="margin-top:14px;">
+      <button class="btn" id="login-email-btn" style="width:100%;">Continuar con email</button>
+    </div>
+    <p class="login-disclaimer">Demo: el login no usa autenticación real de Google/Apple ni verifica contraseñas. Tus datos quedan guardados solo en este navegador.</p>
+  </div>
+</div>
+
+<header>
+  <h1><a href="index.html" style="color:inherit;text-decoration:none;">📈 Trading Journal</a></h1>
+  <nav><a class="navbtn" href="dashboard.html">Dashboard</a><a class="navbtn" href="index.html">Inicio</a></nav>
+  <div class="account-bar"><div></div><div class="links"><select class="lang-select" title="Idioma" aria-label="Idioma"><option value="es">Español</option><option value="en">English</option><option value="pt">Português</option></select></div></div>
+</header><main>
+<section id="planes">
+    <div class="card">
+      <h2>Elegí tu plan</h2>
+      <p class="hint" style="margin-top:-6px;margin-bottom:16px;">Los precios y el cobro son una simulación — no se procesa ningún pago real.</p>
+      <div class="plans-grid" id="plans-grid"></div>
+    </div>
+  </section>
+</main><div class="modal-overlay" id="plan-modal">
+  <div class="card" style="max-width:360px;width:100%;text-align:center;margin-bottom:0;">
+    <div style="font-size:2rem;margin-bottom:6px;" id="plan-modal-icon">💳</div>
+    <h2 id="plan-modal-title">Cambiar de plan</h2>
+    <p class="hint" id="plan-modal-text" style="margin-bottom:16px;"></p>
+    <div class="actionsrow" style="justify-content:center;">
+      <button class="btn ghost" id="plan-modal-cancel">Cancelar</button>
+      <button class="btn" id="plan-modal-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="reset-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;padding:20px;">
+  <div class="card" style="max-width:360px;width:100%;text-align:center;margin-bottom:0;">
+    <div style="font-size:2rem;margin-bottom:6px;">⚠️</div>
+    <h2 style="margin-bottom:8px;">¿Restablecer todo?</h2>
+    <p class="hint" style="margin-bottom:16px;">Esto va a borrar <strong>todas</strong> las operaciones guardadas en el diario de forma permanente. Esta acción no se puede deshacer.</p>
+    <div class="actionsrow" style="justify-content:center;">
+      <button class="btn ghost" id="reset-cancel">Cancelar</button>
+      <button class="btn" id="reset-confirm" style="background:var(--loss);">Sí, borrar todo</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="script.js"></script>
+</body>
+</html>
